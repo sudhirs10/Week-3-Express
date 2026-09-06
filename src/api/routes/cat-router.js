@@ -2,11 +2,12 @@ import express from 'express';
 import multer from 'multer';
 import {createThumbnail} from '../../middlewares/upload.js';
 import {
-  deleteCat,
   getCat,
   getCatById,
+  getCatsByUserId,
   postCat,
   putCat,
+  deleteCat,
 } from '../controllers/cat-controller.js';
 
 const catRouter = express.Router();
@@ -18,6 +19,8 @@ const upload = multer({
 catRouter.get('/', getCat);
 
 catRouter.post('/', upload.single('cat'), createThumbnail, postCat);
+
+catRouter.get('/user/:id', getCatsByUserId);
 
 catRouter.get('/:id', getCatById);
 

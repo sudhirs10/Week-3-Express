@@ -1,36 +1,121 @@
-import {addUser, findUserById, listAllUsers} from '../models/user-model.js';
+import {
+  listAllUsers,
+  findUserById,
+  addUser,
+  modifyUser,
+  removeUser,
+} from '../models/user-model.js';
 
-const getUser = (req, res) => {
-  res.json(listAllUsers());
+const getUser = async (req, res) => {
+  try {
+    const users = await listAllUsers();
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error getting users:', error);
+
+    res.status(500).json({
+      message: 'Database error.',
+    });
+  }
 };
 
-const getUserById = (req, res) => {
-  const user = findUserById(req.params.id);
+const getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await findUserById(userId);
 
-  if (user) {
+    if (!user) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+
+      return;
+    }
+
     res.json(user);
-  } else {
-    res.sendStatus(404);
+  } catch (error) {
+    console.error('Error getting user:', error);
+
+    res.status(500).json({
+      message: 'Database error.',
+    });
   }
 };
 
-const postUser = (req, res) => {
-  const result = addUser(req.body);
+const postUser = async (req, res) => {
+  try {
+    const result = await addUser(req.body);
 
-  if (result.user_id) {
-    res.status(201);
-    res.json({message: 'New user added.', result});
-  } else {
-    res.sendStatus(400);
+    if (!result) {
+      res.status(400).json({
+        message: 'User was not added.',
+      });
+
+      return;
+    }
+
+    res.status(201).json({
+      message: 'New user added.',
+      result,
+    });
+  } catch (error) {
+    console.error('Error adding user:', error);
+
+    res.status(500).json({
+      message: 'Database error.',
+    });
   }
 };
 
-const putUser = (req, res) => {
-  res.json({message: 'User item updated.'});
+const putUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const result = await modifyUser(req.body, userId);
+
+    if (!result) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+
+      return;
+    }
+
+    res.json({
+      message: 'User item updated.',
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+
+    res.status(500).json({
+      message: 'Database error.',
+    });
+  }
 };
 
-const deleteUser = (req, res) => {
-  res.json({message: 'User item deleted.'});
+const deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const result = await removeUser(userId);
+
+    if (!result) {
+      res.status(404).json({
+        message: 'User not found.',
+      });
+
+      return;
+    }
+
+    res.json({
+      message: 'User item deleted.',
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+
+    res.status(500).json({
+      message: 'Database error.',
+    });
+  }
 };
 
 export {getUser, getUserById, postUser, putUser, deleteUser};

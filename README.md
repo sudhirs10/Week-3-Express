@@ -29,6 +29,34 @@ This repository contains my Week 3 Express.js assignments.
 - Resized uploaded images to `160 x 160`.
 - Saved thumbnails inside the `uploads` folder.
 
+### Assignment 5
+
+- Connected the Express API to a MySQL database.
+- Used environment variables for database information.
+- Changed cat and user models to use SQL queries.
+- Added the owner’s name to cat responses.
+- Added a route to get cats by user ID.
+- Used a transaction when deleting a user and their cats.
+
+### Assignment 6
+
+- Hashed new passwords using bcrypt.
+- Added login using username and password.
+- Created JWT tokens after successful login.
+- Added authentication middleware.
+- Added a protected route for getting the logged-in user.
+- Added ownership and role-based authorization.
+
+## Authentication Rules
+
+- Anyone can register as a regular user.
+- Anyone can view cats and users, but passwords are not returned.
+- A token is required to add, update, or delete a cat.
+- A regular user can update and delete only their own cats.
+- A regular user can update and delete only their own account.
+- A regular user cannot change their role to admin.
+- An admin can update or delete any cat or user.
+
 ## Install and Run
 
 Install the packages:

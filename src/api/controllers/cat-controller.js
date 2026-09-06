@@ -61,8 +61,7 @@ const getCatsByUserId = async (req, res) => {
 
 const postCat = async (req, res) => {
   try {
-    console.log('Form data:', req.body);
-    console.log('File data:', req.file);
+    const authenticatedUser = res.locals.user;
 
     if (!req.file) {
       res.status(400).json({
@@ -72,9 +71,15 @@ const postCat = async (req, res) => {
       return;
     }
 
-    req.body.filename = req.file.filename;
+    const newCat = {
+      cat_name: req.body.cat_name,
+      weight: req.body.weight,
+      owner: authenticatedUser.user_id,
+      filename: req.file.filename,
+      birthdate: req.body.birthdate,
+    };
 
-    const result = await addCat(req.body);
+    const result = await addCat(newCat);
 
     if (!result) {
       res.status(400).json({
@@ -100,11 +105,44 @@ const postCat = async (req, res) => {
 const putCat = async (req, res) => {
   try {
     const catId = req.params.id;
-    const result = await modifyCat(req.body, catId);
+    const authenticatedUser = res.locals.user;
 
-    if (!result) {
+    const existingCat = await findCatById(catId);
+
+    if (!existingCat) {
       res.status(404).json({
         message: 'Cat not found.',
+      });
+
+      return;
+    }
+
+    const isOwner =
+      Number(existingCat.owner) === Number(authenticatedUser.user_id);
+
+    const isAdmin = authenticatedUser.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      res.status(403).json({
+        message: 'You cannot update this cat.',
+      });
+
+      return;
+    }
+
+    const catChanges = {
+      ...req.body,
+    };
+
+    if (!isAdmin) {
+      delete catChanges.owner;
+    }
+
+    const result = await modifyCat(catChanges, catId, authenticatedUser);
+
+    if (!result) {
+      res.status(400).json({
+        message: 'Cat was not updated.',
       });
 
       return;
@@ -125,11 +163,36 @@ const putCat = async (req, res) => {
 const deleteCat = async (req, res) => {
   try {
     const catId = req.params.id;
-    const result = await removeCat(catId);
+    const authenticatedUser = res.locals.user;
 
-    if (!result) {
+    const existingCat = await findCatById(catId);
+
+    if (!existingCat) {
       res.status(404).json({
         message: 'Cat not found.',
+      });
+
+      return;
+    }
+
+    const isOwner =
+      Number(existingCat.owner) === Number(authenticatedUser.user_id);
+
+    const isAdmin = authenticatedUser.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      res.status(403).json({
+        message: 'You cannot delete this cat.',
+      });
+
+      return;
+    }
+
+    const result = await removeCat(catId, authenticatedUser);
+
+    if (!result) {
+      res.status(400).json({
+        message: 'Cat was not deleted.',
       });
 
       return;

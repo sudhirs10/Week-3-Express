@@ -1,7 +1,7 @@
 {
-  "name": "jssettings",
+  "name": "week-3-express",
   "version": "1.0.0",
-  "description": "",
+  "description": "Week 3 Express REST API assignments",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

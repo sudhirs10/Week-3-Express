@@ -1,0 +1,46 @@
+### Get all cats
+GET http://127.0.0.1:3000/api/v1/cats
+
+### Get one cat
+GET http://127.0.0.1:3000/api/v1/cats/9592
+
+### Add a new cat
+POST http://127.0.0.1:3000/api/v1/cats
+Content-Type: application/json
+
+{
+  "cat_name": "Luna",
+  "weight": 5,
+  "owner": 3609,
+  "filename": "luna.jpg",
+  "birthdate": "2023-04-20"
+}
+
+### Update a cat
+PUT http://127.0.0.1:3000/api/v1/cats/9592
+
+### Delete a cat
+DELETE http://127.0.0.1:3000/api/v1/cats/9592
+### Get all users
+GET http://127.0.0.1:3000/api/v1/users
+
+### Get one user
+GET http://127.0.0.1:3000/api/v1/users/3609
+
+### Add a new user
+POST http://127.0.0.1:3000/api/v1/users
+Content-Type: application/json
+
+{
+  "name": "Anamo",
+  "username": "anamo",
+  "email": "anamo@metropolia.fi",
+  "role": "user",
+  "password": "password456"
+}
+
+### Update a user
+PUT http://127.0.0.1:3000/api/v1/users/3609
+
+### Delete a user
+DELETE http://127.0.0.1:3000/api/v1/users/3609

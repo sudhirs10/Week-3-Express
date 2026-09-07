@@ -2,38 +2,33 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import {findUserByUsername} from '../models/user-model.js';
 import 'dotenv/config';
+import process from 'node:process';
 
-const postLogin = async (req, res) => {
+const postLogin = async (req, res, next) => {
   try {
     const username = req.body.username;
     const password = req.body.password;
 
     if (!username || !password) {
-      res.status(400).json({
-        message: 'Username and password are required.',
-      });
-
-      return;
+      const error = new Error('Username and password are required.');
+      error.status = 400;
+      return next(error);
     }
 
     const user = await findUserByUsername(username);
 
     if (!user) {
-      res.status(401).json({
-        message: 'Incorrect username or password.',
-      });
-
-      return;
+      const error = new Error('Incorrect username or password.');
+      error.status = 401;
+      return next(error);
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password);
 
     if (!passwordMatches) {
-      res.status(401).json({
-        message: 'Incorrect username or password.',
-      });
-
-      return;
+      const error = new Error('Incorrect username or password.');
+      error.status = 401;
+      return next(error);
     }
 
     const userWithoutPassword = {
@@ -55,22 +50,17 @@ const postLogin = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-
-    res.status(500).json({
-      message: 'Login failed.',
-    });
+    next(error);
   }
 };
 
-const getMe = (req, res) => {
+const getMe = (req, res, next) => {
   const authenticatedUser = res.locals.user;
 
   if (!authenticatedUser) {
-    res.status(401).json({
-      message: 'Authentication required.',
-    });
-
-    return;
+    const error = new Error('Authentication required.');
+    error.status = 401;
+    return next(error);
   }
 
   res.json({

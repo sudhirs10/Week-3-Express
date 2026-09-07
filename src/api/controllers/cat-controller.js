@@ -7,44 +7,36 @@ import {
   removeCat,
 } from '../models/cat-model.js';
 
-const getCat = async (req, res) => {
+const getCat = async (req, res, next) => {
   try {
     const cats = await listAllCats();
 
     res.json(cats);
   } catch (error) {
     console.error('Error getting cats:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const getCatById = async (req, res) => {
+const getCatById = async (req, res, next) => {
   try {
     const catId = req.params.id;
     const cat = await findCatById(catId);
 
     if (!cat) {
-      res.status(404).json({
-        message: 'Cat not found.',
-      });
-
-      return;
+      const error = new Error('Cat not found.');
+      error.status = 404;
+      return next(error);
     }
 
     res.json(cat);
   } catch (error) {
     console.error('Error getting cat:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const getCatsByUserId = async (req, res) => {
+const getCatsByUserId = async (req, res, next) => {
   try {
     const userId = req.params.id;
     const cats = await findCatsByUserId(userId);
@@ -52,23 +44,18 @@ const getCatsByUserId = async (req, res) => {
     res.json(cats);
   } catch (error) {
     console.error('Error getting cats by user ID:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const postCat = async (req, res) => {
+const postCat = async (req, res, next) => {
   try {
     const authenticatedUser = res.locals.user;
 
     if (!req.file) {
-      res.status(400).json({
-        message: 'Cat image is required.',
-      });
-
-      return;
+      const error = new Error('Invalid or missing file');
+      error.status = 400;
+      return next(error);
     }
 
     const newCat = {
@@ -82,11 +69,9 @@ const postCat = async (req, res) => {
     const result = await addCat(newCat);
 
     if (!result) {
-      res.status(400).json({
-        message: 'Cat was not added.',
-      });
-
-      return;
+      const error = new Error('Cat was not added.');
+      error.status = 400;
+      return next(error);
     }
 
     res.status(201).json({
@@ -95,14 +80,11 @@ const postCat = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding cat:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const putCat = async (req, res) => {
+const putCat = async (req, res, next) => {
   try {
     const catId = req.params.id;
     const authenticatedUser = res.locals.user;
@@ -110,11 +92,9 @@ const putCat = async (req, res) => {
     const existingCat = await findCatById(catId);
 
     if (!existingCat) {
-      res.status(404).json({
-        message: 'Cat not found.',
-      });
-
-      return;
+      const error = new Error('Cat not found.');
+      error.status = 404;
+      return next(error);
     }
 
     const isOwner =
@@ -123,29 +103,41 @@ const putCat = async (req, res) => {
     const isAdmin = authenticatedUser.role === 'admin';
 
     if (!isOwner && !isAdmin) {
-      res.status(403).json({
-        message: 'You cannot update this cat.',
-      });
-
-      return;
+      const error = new Error('You cannot update this cat.');
+      error.status = 403;
+      return next(error);
     }
 
-    const catChanges = {
-      ...req.body,
-    };
+    const catChanges = {};
 
-    if (!isAdmin) {
-      delete catChanges.owner;
+    if (req.body.cat_name !== undefined) {
+      catChanges.cat_name = req.body.cat_name;
+    }
+
+    if (req.body.weight !== undefined) {
+      catChanges.weight = req.body.weight;
+    }
+
+    if (req.body.birthdate !== undefined) {
+      catChanges.birthdate = req.body.birthdate;
+    }
+
+    if (isAdmin && req.body.owner !== undefined) {
+      catChanges.owner = req.body.owner;
+    }
+
+    if (Object.keys(catChanges).length === 0) {
+      const error = new Error('No valid fields to update.');
+      error.status = 400;
+      return next(error);
     }
 
     const result = await modifyCat(catChanges, catId, authenticatedUser);
 
     if (!result) {
-      res.status(400).json({
-        message: 'Cat was not updated.',
-      });
-
-      return;
+      const error = new Error('Cat was not updated.');
+      error.status = 400;
+      return next(error);
     }
 
     res.json({
@@ -153,14 +145,11 @@ const putCat = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating cat:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const deleteCat = async (req, res) => {
+const deleteCat = async (req, res, next) => {
   try {
     const catId = req.params.id;
     const authenticatedUser = res.locals.user;
@@ -168,11 +157,9 @@ const deleteCat = async (req, res) => {
     const existingCat = await findCatById(catId);
 
     if (!existingCat) {
-      res.status(404).json({
-        message: 'Cat not found.',
-      });
-
-      return;
+      const error = new Error('Cat not found.');
+      error.status = 404;
+      return next(error);
     }
 
     const isOwner =
@@ -181,21 +168,17 @@ const deleteCat = async (req, res) => {
     const isAdmin = authenticatedUser.role === 'admin';
 
     if (!isOwner && !isAdmin) {
-      res.status(403).json({
-        message: 'You cannot delete this cat.',
-      });
-
-      return;
+      const error = new Error('You cannot delete this cat.');
+      error.status = 403;
+      return next(error);
     }
 
     const result = await removeCat(catId, authenticatedUser);
 
     if (!result) {
-      res.status(400).json({
-        message: 'Cat was not deleted.',
-      });
-
-      return;
+      const error = new Error('Cat was not deleted.');
+      error.status = 400;
+      return next(error);
     }
 
     res.json({
@@ -203,10 +186,7 @@ const deleteCat = async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting cat:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 

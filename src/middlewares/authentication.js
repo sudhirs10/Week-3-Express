@@ -1,25 +1,26 @@
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
+import process from 'node:process';
 
 const authenticateToken = (req, res, next) => {
   const authorizationHeader = req.headers.authorization;
 
   if (!authorizationHeader) {
-    res.status(401).json({
-      message: 'Authorization token is required.',
-    });
-
-    return;
+    const error = new Error('Authorization token is required.');
+    error.status = 401;
+    return next(error);
   }
 
   const headerParts = authorizationHeader.split(' ');
 
-  if (headerParts.length !== 2 || headerParts[0] !== 'Bearer') {
-    res.status(401).json({
-      message: 'Authorization header is not valid.',
-    });
-
-    return;
+  if (
+    headerParts.length !== 2 ||
+    headerParts[0] !== 'Bearer' ||
+    !headerParts[1]
+  ) {
+    const error = new Error('Authorization header is not valid.');
+    error.status = 401;
+    return next(error);
   }
 
   const token = headerParts[1];
@@ -28,15 +29,15 @@ const authenticateToken = (req, res, next) => {
     const decodedUser = jwt.verify(token, process.env.JWT_SECRET);
 
     res.locals.user = decodedUser;
-
-    next();
   } catch (error) {
     console.error('Token verification error:', error.message);
 
-    res.status(403).json({
-      message: 'Invalid or expired token.',
-    });
+    const authenticationError = new Error('Invalid or expired token.');
+    authenticationError.status = 401;
+    return next(authenticationError);
   }
+
+  next();
 };
 
 export {authenticateToken};

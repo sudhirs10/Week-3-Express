@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+
 import {
   listAllUsers,
   findUserById,
@@ -7,7 +8,7 @@ import {
   removeUser,
 } from '../models/user-model.js';
 
-const getUser = async (req, res) => {
+const getUser = async (req, res, next) => {
   try {
     const users = await listAllUsers();
     const safeUsers = [];
@@ -27,24 +28,19 @@ const getUser = async (req, res) => {
     res.json(safeUsers);
   } catch (error) {
     console.error('Error getting users:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const getUserById = async (req, res) => {
+const getUserById = async (req, res, next) => {
   try {
     const userId = req.params.id;
     const user = await findUserById(userId);
 
     if (!user) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-
-      return;
+      const error = new Error('User not found.');
+      error.status = 404;
+      return next(error);
     }
 
     const userWithoutPassword = {
@@ -58,21 +54,16 @@ const getUserById = async (req, res) => {
     res.json(userWithoutPassword);
   } catch (error) {
     console.error('Error getting user:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const postUser = async (req, res) => {
+const postUser = async (req, res, next) => {
   try {
     if (!req.body.password) {
-      res.status(400).json({
-        message: 'Password is required.',
-      });
-
-      return;
+      const error = new Error('Password is required.');
+      error.status = 400;
+      return next(error);
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -88,11 +79,9 @@ const postUser = async (req, res) => {
     const result = await addUser(newUser);
 
     if (!result) {
-      res.status(400).json({
-        message: 'User was not added.',
-      });
-
-      return;
+      const error = new Error('User was not added.');
+      error.status = 400;
+      return next(error);
     }
 
     res.status(201).json({
@@ -101,14 +90,11 @@ const postUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding user:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const putUser = async (req, res) => {
+const putUser = async (req, res, next) => {
   try {
     const userId = req.params.id;
     const authenticatedUser = res.locals.user;
@@ -118,43 +104,53 @@ const putUser = async (req, res) => {
     const isAdmin = authenticatedUser.role === 'admin';
 
     if (!isOwnAccount && !isAdmin) {
-      res.status(403).json({
-        message: 'You cannot update this user.',
-      });
-
-      return;
+      const error = new Error('You cannot update this user.');
+      error.status = 403;
+      return next(error);
     }
 
     const existingUser = await findUserById(userId);
 
     if (!existingUser) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-
-      return;
+      const error = new Error('User not found.');
+      error.status = 404;
+      return next(error);
     }
 
-    const userChanges = {
-      ...req.body,
-    };
+    const userChanges = {};
 
-    if (!isAdmin) {
-      delete userChanges.role;
+    if (req.body.name !== undefined) {
+      userChanges.name = req.body.name;
     }
 
-    if (userChanges.password) {
-      userChanges.password = await bcrypt.hash(userChanges.password, 10);
+    if (req.body.username !== undefined) {
+      userChanges.username = req.body.username;
+    }
+
+    if (req.body.email !== undefined) {
+      userChanges.email = req.body.email;
+    }
+
+    if (req.body.password !== undefined) {
+      userChanges.password = await bcrypt.hash(req.body.password, 10);
+    }
+
+    if (isAdmin && req.body.role !== undefined) {
+      userChanges.role = req.body.role;
+    }
+
+    if (Object.keys(userChanges).length === 0) {
+      const error = new Error('No valid fields to update.');
+      error.status = 400;
+      return next(error);
     }
 
     const result = await modifyUser(userChanges, userId);
 
     if (!result) {
-      res.status(400).json({
-        message: 'User was not updated.',
-      });
-
-      return;
+      const error = new Error('User was not updated.');
+      error.status = 400;
+      return next(error);
     }
 
     res.json({
@@ -162,14 +158,11 @@ const putUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating user:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (req, res, next) => {
   try {
     const userId = req.params.id;
     const authenticatedUser = res.locals.user;
@@ -179,31 +172,25 @@ const deleteUser = async (req, res) => {
     const isAdmin = authenticatedUser.role === 'admin';
 
     if (!isOwnAccount && !isAdmin) {
-      res.status(403).json({
-        message: 'You cannot delete this user.',
-      });
-
-      return;
+      const error = new Error('You cannot delete this user.');
+      error.status = 403;
+      return next(error);
     }
 
     const existingUser = await findUserById(userId);
 
     if (!existingUser) {
-      res.status(404).json({
-        message: 'User not found.',
-      });
-
-      return;
+      const error = new Error('User not found.');
+      error.status = 404;
+      return next(error);
     }
 
     const result = await removeUser(userId);
 
     if (!result) {
-      res.status(400).json({
-        message: 'User was not deleted.',
-      });
-
-      return;
+      const error = new Error('User was not deleted.');
+      error.status = 400;
+      return next(error);
     }
 
     res.json({
@@ -211,10 +198,7 @@ const deleteUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting user:', error);
-
-    res.status(500).json({
-      message: 'Database error.',
-    });
+    next(error);
   }
 };
 
